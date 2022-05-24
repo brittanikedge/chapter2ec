@@ -1,0 +1,157 @@
+---
+title: "figures"
+date: "4/2/2022"
+output: html_document
+---
+
+```{r echo = F}
+library(knitr)
+
+opts_chunk$set(
+  fig.align = "center",
+  fig.retina = 5,
+  warning = F,
+  message = F,
+  cache = T,
+  echo = F,
+  fig.cap = TRUE
+)
+```
+
+```{r echo = F}
+#=== Packages ===#
+library(sf)
+library(raster)
+library(ggplot2)
+library(data.table)
+library(magrittr)
+library(viridis)
+library(dplyr)
+library(data.table)
+library(patchwork)
+library(here)
+library(gstat)
+library(latex2exp)
+source(here("./Code/functions.R"))
+```
+
+```{r field-ls}
+field_year_ls <- c(
+  "Larson_EB2_2017",
+  "Larson_OC1_2018",
+  "Larson_BF2_2020",
+  "Nelson_DougsHome_2017",
+  "Nelson_DougsHome_2021",
+  "Nelson_Wirth_2020",
+  "Nelson_DJWest_2021",
+  "Rohrscheib_Almy_2018",
+  "Rohrscheib_AlmyMain_2020",
+  "Rohrscheib_Brach_2016",
+  "Sasse_JensenEast_2016",
+  "Sasse_JensenEast_2018",
+  "Sasse_JensenEast_2020",
+  "Sasse_JensenWest_2017",
+  "Sasse_JensenWest_2021",
+  "Gingerich_Malacarne1_2017",
+  "Gingerich_Malacarne1_2019",
+  "Gingerich_Field2_2018",
+  "Wendte_LaueLib80_2017",
+  "Wendte_LaueLib80_2019",
+  "Wendte_LaueLib80_2021",
+  "Wendte_Snider_2018",
+  "Bohnhoff_Adams_2016",
+  "Bohnhoff_Adams_2018",
+  "Bohnhoff_Adams_2020",
+  "Bohnhoff_Schormann_2016",
+  "Bohnhoff_Schormann_2018",
+  "Bohnhoff_Schormann_2020",
+  "Bohnhoff_Tims_2017",
+  "Bohnhoff_Tims_2019",
+  "Hord_F98_2017",
+  "Hord_F98_2019",
+  "Hord_F98_2021",
+  "Hord_F17_2018",
+  "Hord_F17_2020", 
+  "Hord_F104_2021",
+  "Niese_98xTom_2018",
+  "Overton_Richter77_2017",
+  "Campbell_Goldenrod_2019",
+  "Campbell_Goldenrod_2021"
+)
+farm_field_ls <- CJ(obs = 1:length(field_year_ls), farm = "", field = "", year = "")
+for (i in 1:length(field_year_ls)){
+farm_field_ls[i,]$farm <- strsplit(field_year_ls[i], "_")[[1]][1]
+farm_field_ls[i,]$field <- strsplit(field_year_ls[i], "_")[[1]][2]
+farm_field_ls[i,]$year <- strsplit(field_year_ls[i], "_")[[1]][3]
+}
+```
+
+## Yield response function
+```{r yield response functions, cache=FALSE}
+for (i in 1:nrow(farm_field_ls)){
+  farm_temp <- farm_field_ls[i,]$farm
+  fields_temp <- farm_field_ls[farm == farm_temp, ]
+  
+  analysis_res_e_all <- data.table()
+  
+  for (j in 1:nrow(fields_temp)){
+    
+  ffy <- paste(fields_temp[j]$farm, fields_temp[j]$field, fields_temp[j]$year, sep = "_")
+  
+  analysis_eval_data_temp <- readRDS(here("Data", ffy, "gam_reg_result.rds")) %>%
+    .[2, "eval_data"]
+  
+  analysis_eval_data_temp <- analysis_eval_data_temp$eval_data[[1]] %>%
+    data.table() %>%
+    mutate(
+    farm =  strsplit(ffy, "_")[[1]][1],
+    field = strsplit(ffy, "_")[[1]][2],
+    year =  strsplit(ffy, "_")[[1]][3],
+    field_year = paste(strsplit(ffy, "_")[[1]][2],year = strsplit(ffy, "_")[[1]][3], sep = "_")
+    )
+  analysis_res_e_all <- if(length(analysis_res_e_all) == 0){
+                        analysis_eval_data_temp} else{rbind(analysis_res_e_all, analysis_eval_data_temp)}
+  }
+  for (j in 1:nrow(fields_temp)){
+    
+  ffy <- paste(fields_temp[j]$farm, fields_temp[j]$field, fields_temp[j]$year, sep = "_")
+  
+  analysis_eval_data_temp <- readRDS(here("Data", ffy, "se_reg_result.rds")) %>%
+    .[2, "eval_data"]
+  
+  analysis_eval_data_temp <- analysis_eval_data_temp$eval_data[[1]] %>%
+    data.table() %>%
+    mutate(
+    farm =  strsplit(ffy, "_")[[1]][1],
+    field = strsplit(ffy, "_")[[1]][2],
+    year =  strsplit(ffy, "_")[[1]][3],
+    field_year = paste(strsplit(ffy, "_")[[1]][2],year = strsplit(ffy, "_")[[1]][3], sep = "_")
+    )
+  analysis_res_e_all <- if(nrow(analysis_res_e_all) == 0){
+                        analysis_eval_data_temp} else{rbind(analysis_res_e_all, analysis_eval_data_temp)}
+  }
+  yield_response_n <- analysis_res_e_all %>% 
+  mutate(
+    ymin = min(yield_hat - 1.96 * yield_hat_se) - 10
+  ) %>% 
+  # filter(., type == "opt_v")%>% 
+               ggplot(data = .)+
+               geom_line(aes(y = yield_hat, x = input_rate, color = year)) +
+               geom_ribbon(
+                 aes(
+                   ymin = yield_hat - 1.96 * yield_hat_se, 
+                   ymax = yield_hat + 1.96 * yield_hat_se, 
+                   x = input_rate,
+                   fill = year
+                 ),
+                 alpha = 0.4
+               ) +
+               labs(title = paste0("Yield_Response_N_",farm_temp), x = 'Nitrogen', y = "Yield") +
+               # ylim(ymin, NA) +
+               facet_wrap(~field,)
+  
+ggsave(yield_response_n, file = here("Figures", paste0("Yield_Response_N_", farm_temp, ".png")), height = 5, width = 6)
+  
+}
+
+```

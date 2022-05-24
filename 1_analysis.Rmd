@@ -1,0 +1,255 @@
+
+# Analysis
+```{r load-field-data, cache=TRUE}
+var_ls <- c("obs_id",        "yild_vl",         "s_rate",          "n_rate",
+            "elevatn",       "f290404",         "f485941",         "slope",                          "aspect",        "curv",            "twi" ,            "tpi",                            "ecd",           "ecs",             "x",               "geometry")
+```
+
+```{r load-data, cache=FALSE}
+data_sf <- read_data(ffy, var_ls)
+
+w_field_data$crop_price <- historical_price[year == strsplit(ffy, "_")[[1]][3], corn]
+w_field_data$n_price <- historical_price[year == strsplit(ffy, "_")[[1]][3], n]
+w_field_data$s_price <- historical_price[year == strsplit(ffy, "_")[[1]][3], s]
+
+analysis_res_g <- w_field_data %>% 
+  mutate(data = list(data_sf)) %>% 
+  rowwise() %>%
+  mutate(
+    field_vars = list(
+      find_field_vars(data)
+    )
+  ) 
+ 
+```
+
+## SCAM/GAM Yield Response Function Estimation and Optimal Rates
+### GAM Estimation
+```{r gam, cache=FALSE}
+analysis_res_gam <- analysis_res_g %>% 
+  mutate(gam_res = list(
+    run_scam_gam_ec(data = data, field_vars = field_vars)
+  )) %>%
+  mutate(res_model = class(gam_res)[1])
+
+analysis_res_gam$res_model
+```
+### GAM Prediction
+```{r gam-prediction, cache=FALSE}
+analysis_res_e <- analysis_res_gam %>% 
+  #=== single average observation ===#
+  mutate(profit_data = list(
+    get_profit_data(
+      data_sf = data,
+      est = gam_res
+    )
+  ))  %>% 
+    mutate(vr_rates = list(
+    get_vr_rates(
+      profit_data = profit_data
+    )
+  ))  %>% 
+    mutate(ur_rate = list(
+    get_ur_rate(
+      profit_data = profit_data
+    )
+  ))  %>% 
+    mutate(profit_diff = list(
+    get_profit_diff(
+      profit_data = profit_data,
+      ur_rate = ur_rate,
+      vr_rates = vr_rates
+    )
+  ))
+
+analysis_res_e$ur_rate
+unique(analysis_res_e$vr_rates[[1]]$treat)
+
+analysis_res_e$profit_diff
+```
+
+
+## Spatial Error Yield Response Function Estimation and Optimal Rates
+### Spatial Error Estimation
+```{r se, cache=FALSE}
+analysis_res_se <- analysis_res_g %>% 
+  mutate(se_res = list(
+    run_se_ec(data = data)
+  )) 
+```
+### Spatial Error Prediction
+```{r se-prediction, cache=FALSE}
+analysis_res_se_results <- analysis_res_se %>% 
+  #=== single average observation ===#
+  mutate(profit_data = list(
+    get_profit_data(
+      data_sf = data,
+      est = se_res
+    )
+  ))  %>% 
+    mutate(vr_rates = list(
+    get_vr_rates(
+      profit_data = profit_data
+    )
+  ))  %>% 
+    mutate(ur_rate = list(
+    get_ur_rate(
+      profit_data = profit_data
+    )
+  ))  %>% 
+    mutate(profit_diff = list(
+    get_profit_diff(
+      profit_data = profit_data,
+      ur_rate = ur_rate,
+      vr_rates = vr_rates
+    )
+  ))
+
+analysis_res_se_results$ur_rate
+unique(analysis_res_se_results$vr_rates[[1]]$treat)
+
+analysis_res_se_results$profit_diff
+```
+
+## SCAM/GAM Analysis Results
+### Optimal Maps and EC Relationship
+```{r rxmap, cache=FALSE}
+data_vr <- data.frame(analysis_res_e$vr_rates[[1]]) %>%
+  select(c("obs_id", "treat", "s", "n", "profit_area")) %>%
+  dplyr::rename("opt_s" = "s", "opt_n" = "n")
+ids <- unique(data_vr$obs_id)
+
+data_sf <- filter(
+  data_sf, 
+  (obs_id %in% ids))
+
+merge <- merge(data.frame(data_sf), data_vr, by = "obs_id") 
+
+data_sf <- cbind(data_sf, merge)
+
+map_s <- tm_shape(data_sf) +
+  tm_polygons(col = "opt_s", lwd = 0.05)
+
+map_n <- tm_shape(data_sf) +
+  tm_polygons(col = "opt_n", lwd = 0.05)
+
+opt_map <- tmap_arrange(map_s, map_n)
+opt_map
+```
+### Correlation between EC and Nitrogen 
+```{r n-corr}
+cor(data_sf$ecs, data_sf$opt_n)
+```
+### Correlation between EC and Seed 
+```{r s-corr}
+cor(data_sf$ecs, data_sf$opt_s)
+```
+
+## Looking at EC and Soils
+### Box Plots of Soil, EC, and Optimal N and S
+```{r ec-plots}
+plot_data <- st_intersection(data_sf, st_transform_utm(ssurgo))
+
+ggplot(plot_data, aes(x = drainagecl, y = ecs)) +
+  geom_boxplot()
+
+ggplot(plot_data, aes(x = soil_name, y = ecs)) +
+  geom_boxplot()
+
+ggplot(plot_data, aes(x = erosion, y = ecs)) +
+  geom_boxplot()
+```
+### Boxplots of Optimal Rates and Soil Data
+```{r opt-plots}
+ggplot(plot_data, aes(x = drainagecl, y = opt_n)) +
+  geom_boxplot()
+
+ggplot(plot_data, aes(x = soil_name, y = opt_n)) +
+  geom_boxplot()
+
+ggplot(plot_data, aes(x = erosion, y = opt_n)) +
+  geom_boxplot()
+
+ggplot(plot_data, aes(x = drainagecl, y = opt_s)) +
+  geom_boxplot()
+
+ggplot(plot_data, aes(x = soil_name, y = opt_s)) +
+  geom_boxplot()
+
+ggplot(plot_data, aes(x = erosion, y = opt_s)) +
+  geom_boxplot()
+```
+
+## EC and other Variables
+### Correlation between Slope and EC 
+```{r corr-slope}
+cor.test(data_sf$ecs, data_sf$slope)
+```
+### Correlation between Elevation and EC 
+```{r corr-elevation}
+cor.test(data_sf$ecs, data_sf$elevation)
+```
+
+### Weather Information
+```{r weather}
+weather_graph
+
+weather_data
+```
+
+### Analysis Result Data
+```{r analysis-data}
+analysis_results <- data.table(
+  "Farm" = w_field_data$farm, 
+  "Field" = w_field_data$field,
+  "Year" = w_field_data$year,
+  "ur_rate" = analysis_res_e$ur_rate[[1]]$treat,
+  "min_vr_s" = min(analysis_res_e$vr_rates[[1]]$s),
+  "max_vr_s" = max(analysis_res_e$vr_rates[[1]]$s),
+  "min_vr_n" = min(analysis_res_e$vr_rates[[1]]$n),
+  "max_vr_n" = max(analysis_res_e$vr_rates[[1]]$n),
+  "profit_diff" = analysis_res_e$profit_diff[[1]],
+  "corr_n" = cor(data_sf$ecs, data_sf$opt_n),
+  "corr_s" = cor(data_sf$ecs, data_sf$opt_s))
+
+analysis_results
+```
+
+### Spatial Error Analysis Result Data
+```{r analysis-data-se}
+data_vr_se <- data.frame(analysis_res_se_results$vr_rates[[1]]) %>%
+  select(c("obs_id", "treat", "s", "n", "profit_area")) %>%
+  dplyr::rename("opt_s" = "s", "opt_n" = "n")
+ids <- unique(data_vr_se$obs_id)
+
+data_sf_se <- filter(
+  data_sf, 
+  (obs_id %in% ids))
+
+merge <- merge(data.frame(data_sf_se), data_vr_se, by = "obs_id") 
+
+data_sf_se <- cbind(data_sf_se, merge)
+
+analysis_results_se <- data.table(
+  "Farm" = w_field_data$farm, 
+  "Field" = w_field_data$field,
+  "Year" = w_field_data$year,
+  "ur_rate" = analysis_res_se_results$ur_rate[[1]]$treat,
+  "min_vr_s" = min(analysis_res_se_results$vr_rates[[1]]$s),
+  "max_vr_s" = max(analysis_res_se_results$vr_rates[[1]]$s),
+  "min_vr_n" = min(analysis_res_se_results$vr_rates[[1]]$n),
+  "max_vr_n" = max(analysis_res_se_results$vr_rates[[1]]$n),
+  "profit_diff" = analysis_res_se_results$profit_diff[[1]],
+  "corr_n" = cor(data_sf_se$ecs, data_sf_se$opt_n),
+  "corr_s" = cor(data_sf_se$ecs, data_sf_se$opt_s))
+
+analysis_results_se
+```
+
+## Saving Results
+```{r save, cache=FALSE}
+saveRDS(opt_map, here("Data", ffy, "opt_map.rds"))
+saveRDS(analysis_res_e, here("Data", ffy, "gam_reg_result.rds"))
+saveRDS(analysis_results, here("Data", ffy, "analysis_results.rds"))
+saveRDS(analysis_results_se, here("Data", ffy, "analysis_results_se.rds"))
+```

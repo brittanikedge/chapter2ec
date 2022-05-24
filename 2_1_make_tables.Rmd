@@ -1,0 +1,126 @@
+---
+title: "tables"
+date: "4/2/2022"
+output: html_document
+---
+
+```{r echo = F}
+library(knitr)
+
+opts_chunk$set(
+  fig.align = "center",
+  fig.retina = 5,
+  warning = F,
+  message = F,
+  cache = F,
+  echo = F,
+  fig.cap = TRUE
+)
+```
+
+```{r echo = F}
+#=== Packages ===#
+library(sf)
+library(data.table)
+library(dplyr)
+library(data.table)
+library(modelsummary)
+library(patchwork)
+library(flextable)
+library(officedown)
+library(here)
+library(officer)
+library(latex2exp)
+source(here("./Code/functions.R"))
+```
+
+```{r field-ls}
+field_year_ls <- 
+c("Bohnhoff_Adams_2016",
+  "Bohnhoff_Adams_2018",      
+  "Bohnhoff_Adams_2020",       
+  "Bohnhoff_Schormann_2016",
+  "Bohnhoff_Schormann_2018",   
+  "Bohnhoff_Schormann_2020",  
+  "Bohnhoff_Tims_2017",   
+  "Bohnhoff_Tims_2019",   
+  "Gingerich_Field2_2018",    
+  "Gingerich_Malacarne1_2017",
+  "Gingerich_Malacarne1_2019",
+  "Hord_F98_2017",
+  "Hord_F98_2019",            
+  "Hord_F98_2021",            
+  "Larson_EB2_2017",           
+  "Larson_EB2_2019",
+  "Larson_OC1_2018",          
+  "Larson_OC1_2021",
+  "Nelson_DougsHome_2017",  
+  "Nelson_DougsHome_2021",  
+  "Nelson_Wirth_2018",         
+  "Nelson_Wirth_2020",  
+  "Overton_Richter77_2017",  
+  "Rohrscheib_Almy_2018",      
+  "Rohrscheib_Brach_2016", 
+  "Sasse_JensenEast_2016", 
+  "Sasse_JensenEast_2018",
+  "Sasse_JensenEast_2020", 
+  "Sasse_JensenWest_2017",
+  "Sasse_JensenWest_2021",    
+  "Wendte_LaueLib80_2017",     
+  "Wendte_LaueLib80_2019",    
+  "Wendte_Snider_2018")
+
+# farm_field_ls <- CJ(obs = 1:length(field_year_ls), farm = "", field = "", year = "")
+# for (i in 1:length(field_year_ls)){
+# farm_field_ls[i,]$farm <- strsplit(field_year_ls[i], "_")[[1]][1]
+# farm_field_ls[i,]$field <- strsplit(field_year_ls[i], "_")[[1]][2]
+# farm_field_ls[i,]$year <- strsplit(field_year_ls[i], "_")[[1]][3]
+# }
+```
+
+```{r tab.id = "data-summary-0", tab.cap = "Weather for Different Region and Year Combinations"}
+weather_all <- data.table()
+for (i in 1:length(field_year_ls)){
+  ffy <- field_year_ls[i]
+  
+  weather_temp <- readRDS(here("Data", ffy, "weather_info.rds")) %>%
+    data.table()
+  weather_all <- if(nrow(weather_all) == 0){
+                        weather_temp} else{rbind(weather_all, weather_temp)}
+
+}
+
+weather <- weather_all %>% 
+  flextable() %>%
+  theme_vanilla() %>%
+  merge_v(j = c("Farm", "Field")) %>%
+  align_text_col(., align = "center") %>%
+  align_nottext_col(., align = "center") %>%
+  autofit()
+
+weather
+```
+
+```{r tab.id = "results-summary-0", tab.cap = "Weather for Different Region and Year Combinations"}
+weather_all <- data.table()
+for (i in 1:length(field_year_ls)){
+  ffy <- field_year_ls[i]
+  
+  weather_temp <- readRDS(here("Data", ffy, "weather_info.rds")) %>%
+    data.table()
+  weather_all <- if(nrow(weather_all) == 0){
+                        weather_temp} else{rbind(weather_all, weather_temp)}
+
+}
+
+weather <- weather_all %>% 
+  flextable() %>%
+  theme_vanilla() %>%
+  merge_v(j = c("Farm", "Field")) %>%
+  align_text_col(., align = "center") %>%
+  align_nottext_col(., align = "center") %>%
+  autofit()
+
+weather
+```
+
