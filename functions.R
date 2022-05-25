@@ -271,14 +271,14 @@ run_scam_gam_ec_notimeout <- function(data, field_vars){
 analysis_make_report <- function(ffy, rerun = TRUE){
   
   analysis_temp_rmd <- read_rmd(
-    "Code/analysis_template.Rmd"
+    "Code/chapter2ec/analysis_template.Rmd"
   )
   
   analysis <- read_rmd(
-    "Code/1_analysis.Rmd"
+    "Code/chapter2ec/1_analysis.Rmd"
   )
   
-  weather <- read_rmd(here("Code/0_1_weather_soil.Rmd"))
+  weather <- read_rmd(here("Code/chapter2ec/0_1_weather_soil.Rmd"))
   
   analysis_rmd_y <- c(analysis_temp_rmd, weather, analysis)%>%
     gsub("field-year-here", ffy, .) %>% 
@@ -303,42 +303,6 @@ analysis_make_report <- function(ffy, rerun = TRUE){
   writeLines(analysis_rmd_y, con = analysis_report_rmd_file_name)
   
   purl(analysis_report_rmd_file_name, output = analysis_report_r_file_name)
-  
-}
-
-weather_make_report <- function(ffy, rerun = FALSE){
-  source(here("Code/unpack_field_parameters.R"))
-  analysis_temp_rmd <- read_rmd(
-    "Code/analysis_template.Rmd"
-  )
-  
-  weather <- read_rmd(here("Code/0_1_weather.Rmd"))
-  
-  analysis_rmd_y <- c(analysis_temp_rmd, weather) %>%
-    gsub("field-year-here", ffy, .) %>% 
-    gsub("title-here", "Weather Processing Report", .)
-  
-  
-  #/*=================================================*/
-  #' # Write out the rmd and render
-  #/*=================================================*/
-  analysis_report_rmd_file_name <- here(
-    "Data", 
-    ffy, 
-    "analysis_report_exp.Rmd"
-  )
-  
-  analysis_report_r_file_name <- here(
-    "Data", 
-    ffy, 
-    "for_analysis_debug.R"
-  )
-  
-  writeLines(analysis_rmd_y, con = analysis_report_rmd_file_name) 
-  
-  purl(analysis_report_rmd_file_name, output = analysis_report_r_file_name)
-  
-  render(analysis_report_rmd_file_name)
   
 }
 

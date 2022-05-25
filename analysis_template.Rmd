@@ -78,6 +78,7 @@ library(gratia)
 library(spdep)
 library(spatialreg)
 library(soilDB)
+library(vegan)
 ```
 
 ```{r preparations, cache = F}

@@ -43,7 +43,7 @@ c("Bohnhoff_Adams_2016",
   "Bohnhoff_Schormann_2018",   
   "Bohnhoff_Schormann_2020",  
   "Bohnhoff_Tims_2017",   
-  "Bohnhoff_Tims_2019",   
+  # "Bohnhoff_Tims_2019",   
   "Gingerich_Field2_2018",    
   "Gingerich_Malacarne1_2017",
   "Gingerich_Malacarne1_2019",
@@ -122,5 +122,52 @@ weather <- weather_all %>%
   autofit()
 
 weather
+```
+
+```{r tab.id = "results-summary-1", tab.cap = "SCAM/GAM Analysis Results"}
+results_all <- data.table()
+for (i in 1:length(field_year_ls)){
+  ffy <- field_year_ls[i]
+  
+  results_temp <- readRDS(here("Data", ffy, "analysis_results.rds")) %>%
+    data.table()
+  results_all <- if(nrow(results_all) == 0){
+                        results_temp} else{rbind(results_all, results_temp)}
+
+}
+
+results_scam <- results_all %>% 
+  flextable() %>%
+  theme_vanilla() %>%
+  merge_v(j = c("Farm", "Field")) %>%
+  align_text_col(., align = "center") %>%
+  align_nottext_col(., align = "center") %>%
+  autofit()
+
+results_scam
+```
+
+
+```{r tab.id = "results-summary-2", tab.cap = "SEM Analysis Results"}
+results_all <- data.table()
+for (i in 1:length(field_year_ls)){
+  ffy <- field_year_ls[i]
+  
+  results_temp <- readRDS(here("Data", ffy, "analysis_results_se.rds")) %>%
+    data.table()
+  results_all <- if(nrow(results_all) == 0){
+                        results_temp} else{rbind(results_all, results_temp)}
+
+}
+
+results_sem <- results_all %>% 
+  flextable() %>%
+  theme_vanilla() %>%
+  merge_v(j = c("Farm", "Field")) %>%
+  align_text_col(., align = "center") %>%
+  align_nottext_col(., align = "center") %>%
+  autofit()
+
+results_sem
 ```
 

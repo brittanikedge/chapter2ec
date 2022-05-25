@@ -72,30 +72,32 @@ weather_data <- data.table(
   "prec_poll" = weather %>% 
     .[date <= (date_poll + 7) & date > (date_poll - 7)] %>%
     .[, sum(precipitation)],
-  "days_prec_ov_5" = weather %>%
-  .[date <= date_black] %>%
-  .[precipitation > 5] %>%
-  nrow(.),
-  "cum_prec_5" = cbind(weather, weather[, shift(.SD, 1:2, NA, "lead", TRUE), .SDcols=4]) %>%
-  .[, sum_prec_3 := precipitation + precipitation_lead_1 + precipitation_lead_2] %>%
-  .[sum_prec_3 > 5] %>%
-  nrow(.),
   "prec_gf" = weather %>% 
     .[date < date_black & date > date_poll] %>%
     .[, sum(precipitation)],
-  "temp_poll" = weather %>% 
-    .[date <= (date_poll + 7) & date > (date_poll - 7)] %>%
-    .[, tavg := (tmax + tmin)/2] %>%
-    .[, mean(tavg)],
-  "temp_gf" = weather %>% 
-    .[date < date_black & date > date_poll] %>%
-    .[, tavg := (tmax + tmin)/2] %>%
-    .[, mean(tavg)],
+  "sdi_season" = weather %>% 
+    .[date < date_black] %>%
+    .[, diversity(precipitation, index = "shannon")/log(.N)],
+  "sdi_sd" = weather %>% 
+    .[date < as.Date(input_data_n$date, format = "%m/%d/%Y")] %>%
+    .[, diversity(precipitation, index="shannon")/log(.N)],
+    "cum_prec_5" = cbind(weather, weather[, shift(.SD, 1:2, NA, "lead", TRUE), .SDcols=4]) %>%
+  .[, sum_prec_3 := precipitation + precipitation_lead_1 + precipitation_lead_2] %>%
+  .[sum_prec_3 > 5] %>%
+  nrow(.),
   "prec_season" = weather %>% 
     .[date < date_black] %>%
     .[, sum(precipitation)],
   "temp_season" =  weather %>% 
     .[date < date_black] %>%
+    .[, tavg := (tmax + tmin)/2] %>%
+    .[, mean(tavg)],
+    "temp_poll" = weather %>% 
+    .[date <= (date_poll + 7) & date > (date_poll - 7)] %>%
+    .[, tavg := (tmax + tmin)/2] %>%
+    .[, mean(tavg)],
+  "temp_gf" = weather %>% 
+    .[date < date_black & date > date_poll] %>%
     .[, tavg := (tmax + tmin)/2] %>%
     .[, mean(tavg)]) 
 
