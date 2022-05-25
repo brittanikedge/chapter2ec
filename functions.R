@@ -236,37 +236,16 @@ run_scam_gam_ec <- function(data, field_vars){
   
 }
 
-run_scam_gam_ec_notimeout <- function(data, field_vars){
-  results <- NULL
 
-  if(sum(ifelse(is.na(data$n) == FALSE, 1, 0)) > nrow(data)/2){
-    formula <- paste0(
-              "yield ~ s(n, bs = \"micv\") + s(s, bs = \"cv\") + I(n*ecs) + I(s*ecs) + I(s*n) + s(ecs, k = 3) + s(X, k = 5) + s(Y, k = 5) + te(X, Y, k = c(5, 5))",
-              ifelse(
-                length(field_vars) > 0,
-                paste0(" + ", paste0(field_vars, collapse = " + ")),
-                ""
-              )
-            ) %>% formula()
-
-           results <-  scam(formula, data = data)
-}else{
-     formula <- paste0(
-                "yield ~ s(s, bs = \"cv\") + I(s*ecs) + s(ecs, k = 3) + s(X, k = 5) + s(Y, k = 5) + te(X, Y, k = c(5, 5))",
-                ifelse(
-                  length(field_vars) > 0,
-                  paste0(" + ", paste0(field_vars, collapse = " + ")),
-                  ""
-                )
-              ) %>% formula()
-
-      results <- scam(formula, data = data)
-
-    }
-
-  return(results)
-
+read_rmd <- function(file_name) {
+  file_name <-
+    here(file_name)
+  
+  rmd_file <- readLines(file_name)
+  
+  return(rmd_file)
 }
+
 
 analysis_make_report <- function(ffy, rerun = TRUE){
   
@@ -367,163 +346,6 @@ read_data <- function(ffy, var_ls){
     mutate(polygon_area := st_area(.)) %>%
     make_var_name_consistent(., dictionary[type == "final", ])
   return(data_temp)
-}
-
-assign_gc_rate <- function(data, input_type, gc_type, gc_rate) {
-  
-  data_temp <- tryCatch(
-    {
-      if (gc_type == "Rx") {
-        #--------------------------
-        # Read Rx data
-        #--------------------------
-        Rx <- st_read(gc_rate) %>% 
-          st_set_crs(4326) %>% 
-          st_transform(st_crs(data)) %>%
-          # st_make_valid() %>%
-          setnames(names(.), tolower(names(.)))
-        
-        dict_input <- dictionary[type == paste0("Rx-", tolower(input_type)), ]
-        col_list <- dict_input[, column]
-        
-        Rx <- make_var_name_consistent(
-          Rx, 
-          dict_input 
-        )
-        
-        #/*----------------------------------*/
-        #' ## Unit conversion
-        #/*----------------------------------*/
-        if (input_type == "N") {
-          Rx <- mutate(Rx, 
-                       tgti = convert_N_unit(
-                         input_data_n$form, 
-                         input_data_n$unit, 
-                         tgti, 
-                         field_data$reporting_unit
-                       ) 
-                       # + n_base_rate # add base N rate
-          )
-        } else if (input_type == "S") {
-          #--- seed rate conversion ---#
-          if (any(Rx$tgti > 10000)){
-            #--- convert to K ---#
-            Rx <- mutate(Rx, tgti = tgti / 1000)
-          }
-        }
-        
-        #=== map ===#
-        # tm_shape(Rx) +
-        #   tm_fill(col = "tgti")
-        
-        #--------------------------
-        # Identify grower-chosen rate by observation
-        #--------------------------
-        obs_tgti <- st_intersection(data, Rx) %>% 
-          mutate(area = as.numeric(st_area(.))) %>% 
-          data.table() %>% 
-          .[, .SD[area == max(area)], by = obs_id] %>% 
-          .[, num_obs_per_zone := .N, tgti] %>% 
-          .[, analyze := FALSE] %>% 
-          .[num_obs_per_zone >= 200, analyze := TRUE] %>% 
-          .[, .(obs_id, tgti, analyze)] 
-        
-        data <- left_join(data, obs_tgti, by = "obs_id") %>% 
-          rename(gc_rate = tgti)
-      }
-      
-    },
-    error = function(cond){
-      data$gc_rate <- mean(Rx$tgti)
-      return(data)
-    }
-  )
-  
-  if (gc_type == "uniform") {
-    
-    data$gc_rate <- gc_rate 
-    
-  } else {
-    data <- data_temp
-  }
-  
-  return(data)
-}
-
-get_whole_pi_test <- function(data, gam_res, crop_price, input_price) {
-  
-  test_data <- data.table(data) 
-  
-  whole_profits_test <- rbind(
-    #=== opt (V) vs gc ===#
-    get_dif_stat(
-      test_data, 
-      "input_rate", 
-      "opt_input", 
-      "gc_rate",
-      gam_res,
-      crop_price,
-      input_price = input_price 
-    ) %>% 
-      .[, type := "VR \n vs \n GC"] %>% 
-      .[, type_short := "ov vs g"],
-    
-    #=== site-specific vs optimal uniform without zones ===#
-    get_dif_stat(
-      test_data, 
-      "input_rate", 
-      "opt_input", 
-      "opt_input_u",
-      gam_res,
-      crop_price,
-      input_price = input_price 
-    ) %>% 
-      .[, type := "VR \n vs \n UR without zones"] %>% 
-      .[, type_short := "ov vs ounoz"],
-    
-    #=== site-specific vs optimal uniform with zones ===#
-    get_dif_stat(
-      test_data, 
-      "input_rate", 
-      "opt_input", 
-      "opt_input_u_zone",
-      gam_res,
-      crop_price,
-      input_price = input_price 
-    ) %>% 
-      .[, type := "VR \n vs \n UR with zones"] %>% 
-      .[, type_short := "ov vs ouwz"],
-    
-    #=== optimal uniform without zones vs optimal uniform with zones ===#
-    get_dif_stat(
-      test_data, 
-      "input_rate", 
-      "opt_input_u_zone", 
-      "opt_input_u_full",
-      gam_res,
-      crop_price,
-      input_price = input_price 
-    ) %>% 
-      .[, type := "UR with zones \n vs \n UR without zones"] %>% 
-      .[, type_short := "ounoz vs ouwz"],
-    
-    #=== opt (u) with zone vs gc ===#
-    get_dif_stat(
-      test_data, 
-      "input_rate", 
-      "opt_input_u_zone", 
-      "gc_rate",
-      gam_res,
-      crop_price,
-      input_price = input_price 
-    ) %>% 
-      .[, type := "UR with zone \n vs \n GC"] %>% 
-      .[, type_short := "ou vs g"]
-  )
-  
-  
-  return(whole_profits_test)
-  
 }
 
 make_data_for_eval <- function(data, field_vars, est) {
@@ -850,15 +672,6 @@ get_dif_stat <- function(data, test_var, opt_var, gc_var, gam_res, crop_price, i
   
   return(return_data)
   
-}
-
-read_rmd <- function(file_name) {
-  file_name <-
-    here(file_name)
-  
-  rmd_file <- readLines(file_name)
-  
-  return(rmd_file)
 }
 
 find_field_vars <- function(data_sf) {

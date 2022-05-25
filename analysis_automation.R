@@ -22,8 +22,6 @@ ffy <- "Hord_F98_2019"
 data_sf <- st_read(here("Data", ffy, "analysis_data.shp")) 
 
 analysis_make_report(ffy, rerun = TRUE)
+render(here("Data", ffy, "analysis_report_exp.Rmd"))
 
-lapply(field_year_ls, analysis_make_report)
-
-weather_make_report(field_year_ls[2], rerun = TRUE)
 

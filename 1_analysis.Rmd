@@ -125,12 +125,12 @@ data_sf <- filter(
 
 merge <- merge(data.frame(data_sf), data_vr, by = "obs_id") 
 
-data_sf <- cbind(data_sf, merge)
+data_sf_scam <- cbind(data_sf, merge)
 
-map_s <- tm_shape(data_sf) +
+map_s <- tm_shape(data_sf_scam) +
   tm_polygons(col = "opt_s", lwd = 0.05)
 
-map_n <- tm_shape(data_sf) +
+map_n <- tm_shape(data_sf_scam) +
   tm_polygons(col = "opt_n", lwd = 0.05)
 
 opt_map <- tmap_arrange(map_s, map_n)
@@ -138,17 +138,17 @@ opt_map
 ```
 ### Correlation between EC and Nitrogen 
 ```{r n-corr}
-cor(data_sf$ecs, data_sf$opt_n)
+cor(data_sf_scam$ecs, data_sf_scam$opt_n)
 ```
 ### Correlation between EC and Seed 
 ```{r s-corr}
-cor(data_sf$ecs, data_sf$opt_s)
+cor(data_sf_scam$ecs, data_sf_scam$opt_s)
 ```
 
 ## Looking at EC and Soils
 ### Box Plots of Soil, EC, and Optimal N and S
 ```{r ec-plots}
-plot_data <- st_intersection(data_sf, st_transform_utm(ssurgo))
+plot_data <- st_intersection(data_sf_scam, st_transform_utm(ssurgo))
 
 ggplot(plot_data, aes(x = drainagecl, y = ecs)) +
   geom_boxplot()
@@ -183,18 +183,19 @@ ggplot(plot_data, aes(x = erosion, y = opt_s)) +
 ## EC and other Variables
 ### Correlation between Slope and EC 
 ```{r corr-slope}
-cor.test(data_sf$ecs, data_sf$slope)
+cor.test(data_sf_scam$ecs, data_sf_scam$slope)
 ```
 ### Correlation between Elevation and EC 
 ```{r corr-elevation}
-cor.test(data_sf$ecs, data_sf$elevation)
+cor.test(data_sf_scam$ecs, data_sf_scam$elevation)
 ```
 
 ### Weather Information
 ```{r weather}
 weather_graph
 
-weather_data
+weather_data %>%
+  flextable()
 ```
 
 ### Analysis Result Data
@@ -209,10 +210,11 @@ analysis_results <- data.table(
   "min_vr_n" = round(min(analysis_res_e$vr_rates[[1]]$n)),
   "max_vr_n" = round(max(analysis_res_e$vr_rates[[1]]$n)),
   "profit_diff" = round(analysis_res_e$profit_diff[[1]], 2),
-  "corr_n" = cor(data_sf$ecs, data_sf$opt_n),
-  "corr_s" = cor(data_sf$ecs, data_sf$opt_s))
+  "corr_n" = cor(data_sf_scam$ecs, data_sf_scam$opt_n),
+  "corr_s" = cor(data_sf_scam$ecs, data_sf_scam$opt_s))
 
-analysis_results
+analysis_results %>%
+  flextable()
 ```
 
 ### Spatial Error Analysis Result Data
@@ -243,7 +245,8 @@ analysis_results_se <- data.table(
   "corr_n" = cor(data_sf_se$ecs, data_sf_se$opt_n),
   "corr_s" = cor(data_sf_se$ecs, data_sf_se$opt_s))
 
-analysis_results_se
+analysis_results_se %>%
+  flextable()
 ```
 
 ## Saving Results

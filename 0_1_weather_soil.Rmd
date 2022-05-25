@@ -104,9 +104,6 @@ weather_data <- data.table(
 ```
 
 ```{r weather-save, cache = F}
-weather_data %>%
-  data.frame()
-
 saveRDS(weather_data, here("Data", ffy, "weather_info.rds"))
 ```
 

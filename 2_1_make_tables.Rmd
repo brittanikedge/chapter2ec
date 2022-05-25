@@ -31,7 +31,7 @@ library(officedown)
 library(here)
 library(officer)
 library(latex2exp)
-source(here("./Code/functions.R"))
+source(here("./Code/chapter2ec/functions.R"))
 ```
 
 ```{r field-ls}
@@ -79,29 +79,6 @@ c("Bohnhoff_Adams_2016",
 ```
 
 ```{r tab.id = "data-summary-0", tab.cap = "Weather for Different Region and Year Combinations"}
-weather_all <- data.table()
-for (i in 1:length(field_year_ls)){
-  ffy <- field_year_ls[i]
-  
-  weather_temp <- readRDS(here("Data", ffy, "weather_info.rds")) %>%
-    data.table()
-  weather_all <- if(nrow(weather_all) == 0){
-                        weather_temp} else{rbind(weather_all, weather_temp)}
-
-}
-
-weather <- weather_all %>% 
-  flextable() %>%
-  theme_vanilla() %>%
-  merge_v(j = c("Farm", "Field")) %>%
-  align_text_col(., align = "center") %>%
-  align_nottext_col(., align = "center") %>%
-  autofit()
-
-weather
-```
-
-```{r tab.id = "results-summary-0", tab.cap = "Weather for Different Region and Year Combinations"}
 weather_all <- data.table()
 for (i in 1:length(field_year_ls)){
   ffy <- field_year_ls[i]

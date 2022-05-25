@@ -89,7 +89,7 @@ source(
 
 #--- github ---#
 source("https://raw.githubusercontent.com/brittanikedge/DIFM/main/Functions.R")
-source(here("./Code/functions.R"))
+source(here("./Code/chapter2ec/functions.R"))
 
 #--- define field-year ---#
 ffy <- "field-year-here"
@@ -116,7 +116,7 @@ data.table()
 
 historical_price <- readRDS(here("./Data/historical_price.rds"))
 #--- define field parameters ---#
-source(here("Code/unpack_field_parameters.R"))
+source(here("Code/chapter2ec/unpack_field_parameters.R"))
 
 #---  ---#
 plan(multiprocess, workers = detectCores() - 2)
