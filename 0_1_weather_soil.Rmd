@@ -62,6 +62,12 @@ plot_data <- test$avg_plot_data[[1]]
 
 weather_graph <- ggplot(plot_data, aes(fill = weather, y = sum_prec, x = month)) + 
     geom_bar(position="dodge", stat="identity")
+
+if(exists("input_data_n")){
+  sd_date = input_data_n$date
+}else{
+  sd_date = NA
+}
  
 weather_data <- data.table(
   "Farm" = w_field_data$farm, 
@@ -79,7 +85,7 @@ weather_data <- data.table(
     .[date < date_black] %>%
     .[, diversity(precipitation, index = "shannon")/log(.N)],
   "sdi_sd" = weather %>% 
-    .[date < as.Date(input_data_n$date, format = "%m/%d/%Y")] %>%
+    .[date < as.Date(sd_date, format = "%m/%d/%Y")] %>%
     .[, diversity(precipitation, index="shannon")/log(.N)],
     "cum_prec_5" = cbind(weather, weather[, shift(.SD, 1:2, NA, "lead", TRUE), .SDcols=4]) %>%
   .[, sum_prec_3 := precipitation + precipitation_lead_1 + precipitation_lead_2] %>%

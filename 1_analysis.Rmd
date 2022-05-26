@@ -200,7 +200,8 @@ weather_data %>%
 
 ### Analysis Result Data
 ```{r analysis-data}
-analysis_results <- data.table(
+if(exists("input_data_n")){
+  analysis_results <- data.table(
   "Farm" = w_field_data$farm, 
   "Field" = w_field_data$field,
   "Year" = w_field_data$year,
@@ -212,6 +213,20 @@ analysis_results <- data.table(
   "profit_diff" = round(analysis_res_e$profit_diff[[1]], 2),
   "corr_n" = cor(data_sf_scam$ecs, data_sf_scam$opt_n),
   "corr_s" = cor(data_sf_scam$ecs, data_sf_scam$opt_s))
+}else{
+  analysis_results <- data.table(
+  "Farm" = w_field_data$farm, 
+  "Field" = w_field_data$field,
+  "Year" = w_field_data$year,
+  "ur_rate" = round(as.numeric(analysis_res_e$ur_rate[[1]]$treat)),
+  "min_vr_s" = round(min(analysis_res_e$vr_rates[[1]]$s)),
+  "max_vr_s" = round(max(analysis_res_e$vr_rates[[1]]$s)),
+  "min_vr_n" = round(min(analysis_res_e$vr_rates[[1]]$n)),
+  "max_vr_n" = round(max(analysis_res_e$vr_rates[[1]]$n)),
+  "profit_diff" = round(analysis_res_e$profit_diff[[1]], 2),
+  "corr_n" = cor(data_sf_scam$ecs, data_sf_scam$opt_n),
+  "corr_s" = cor(data_sf_scam$ecs, data_sf_scam$opt_s))
+}
 
 analysis_results %>%
   flextable()
@@ -232,7 +247,8 @@ merge <- merge(data.frame(data_sf_se), data_vr_se, by = "obs_id")
 
 data_sf_se <- cbind(data_sf_se, merge)
 
-analysis_results_se <- data.table(
+if(exists("input_data_n")){
+  analysis_results_se <- data.table(
   "Farm" = w_field_data$farm, 
   "Field" = w_field_data$field,
   "Year" = w_field_data$year,
@@ -244,6 +260,20 @@ analysis_results_se <- data.table(
   "profit_diff" = round(analysis_res_se_results$profit_diff[[1]], 2),
   "corr_n" = cor(data_sf_se$ecs, data_sf_se$opt_n),
   "corr_s" = cor(data_sf_se$ecs, data_sf_se$opt_s))
+}else{
+    analysis_results_se <- data.table(
+  "Farm" = w_field_data$farm, 
+  "Field" = w_field_data$field,
+  "Year" = w_field_data$year,
+  "ur_rate" = round(as.numeric(analysis_res_se_results$ur_rate[[1]]$treat)),
+  "min_vr_s" = round(min(analysis_res_se_results$vr_rates[[1]]$s)),
+  "max_vr_s" = round(max(analysis_res_se_results$vr_rates[[1]]$s)),
+  "min_vr_n" = round(min(analysis_res_se_results$vr_rates[[1]]$n)),
+  "max_vr_n" = round(max(analysis_res_se_results$vr_rates[[1]]$n)),
+  "profit_diff" = round(analysis_res_se_results$profit_diff[[1]], 2),
+  "corr_n" = cor(data_sf_se$ecs, data_sf_se$opt_n),
+  "corr_s" = cor(data_sf_se$ecs, data_sf_se$opt_s))
+}
 
 analysis_results_se %>%
   flextable()

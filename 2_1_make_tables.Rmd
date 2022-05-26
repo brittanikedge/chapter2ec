@@ -1,7 +1,9 @@
 ---
 title: "tables"
 date: "4/2/2022"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r echo = F}
@@ -30,8 +32,8 @@ library(flextable)
 library(officedown)
 library(here)
 library(officer)
-library(latex2exp)
-source(here("./Code/chapter2ec/functions.R"))
+
+source("/Users/brittaniedge/Library/CloudStorage/Box-Box/Chapter2_EC/Code/chapter2ec/functions.R")
 ```
 
 ```{r field-ls}
@@ -99,6 +101,12 @@ weather <- weather_all %>%
   autofit()
 
 weather
+# set_header_labels(weather,
+#   values = list(Sepal.Length = "Sepal length",
+#                 Sepal.Width = "Sepal width",
+#                 Petal.Length = "Petal length",
+#                 Petal.Width = "Petal width" ) )
+# save_as_image(ft, path = "name.png")
 ```
 
 ```{r tab.id = "results-summary-1", tab.cap = "SCAM/GAM Analysis Results"}

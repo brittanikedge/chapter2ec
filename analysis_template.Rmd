@@ -79,6 +79,7 @@ library(spdep)
 library(spatialreg)
 library(soilDB)
 library(vegan)
+library(flextable)
 ```
 
 ```{r preparations, cache = F}
