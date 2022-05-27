@@ -236,7 +236,6 @@ run_scam_gam_ec <- function(data, field_vars){
   
 }
 
-
 read_rmd <- function(file_name) {
   file_name <-
     here(file_name)
@@ -245,7 +244,6 @@ read_rmd <- function(file_name) {
   
   return(rmd_file)
 }
-
 
 analysis_make_report <- function(ffy, rerun = TRUE){
   
@@ -294,13 +292,34 @@ data_summary <- function(ffy){
   if (data_exists){
     data_temp <- here("Data", ffy, "analysis_data.shp") %>% 
       read_sf()%>% 
-      filter(!is.na(yild_vl))%>%
-      data.table()%>%
+      filter(!is.na(yild_vl)) %>%
+      data.table() %>%
+      dplyr::mutate(n_rate = ifelse("n_rate" %in% names(.), n_rate, NA)) %>%
       dplyr::mutate(farm = strsplit(ffy, "_")[[1]][1], 
                     field = strsplit(ffy, "_")[[1]][2], 
-                    year = strsplit(ffy, "_")[[1]][3])%>%
-      dplyr::select('farm', 'field', 'year', 'yild_vl', 's_rate', 'n_rate')%>%
-      mutate_if(is.numeric, round, digits = 1)
+                    year = strsplit(ffy, "_")[[1]][3]) %>%
+      dplyr::select('farm', 'field', 'year', 'yild_vl', 's_rate', 'n_rate', 'ecs', "elevatn") %>%
+      mutate(yield_mean = mean(yild_vl),
+             yield_cv = sd(yild_vl)/mean(yild_vl),
+             s_mean = mean(s_rate),
+             s_cv = sd(s_rate)/mean(s_rate),
+             n_mean = mean(n_rate),
+             n_cv = sd(n_rate)/mean(n_rate),
+             ec_mean = mean(ecs),
+             ec_cv = sd(ecs)/mean(ecs),
+             elev_mean = mean(elevatn),
+             elev_cv = sd(elevatn)/mean(elevatn)) %>%
+      mutate_if(is.numeric, round, digits = 2) %>%
+      rowwise() %>%
+      mutate(yield = paste(c(yield_mean, yield_cv), collapse = "\n"),
+             ecs = paste(c(ec_mean, ec_cv), collapse = "\n"),
+             elevation = paste(c(elev_mean, elev_cv), collapse = "\n"),
+             s = paste(c(s_mean, s_cv), collapse = "\n"),
+             n = paste(c(n_mean, n_cv), collapse = "\n")) %>%
+      dplyr::select('farm', 'field', 'year', 'yield', 'ecs', 'elevation', 'n', "s") %>%
+      .[1, ]
+    
+    
   } 
   
   return(data_temp)
@@ -368,7 +387,6 @@ make_data_for_eval <- function(data, field_vars, est) {
   return(data_for_eval)
   
 }
-
 
 predict_se <- function(rate, est, profit_data){
   subset <- profit_data %>%
